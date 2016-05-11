@@ -274,18 +274,22 @@
     AFURLSessionManager *manager = [[AFURLSessionManager alloc] initWithSessionConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]];
     manager.securityPolicy = securityPolicy;
     NSString *method = [command.arguments objectAtIndex:0];
-    NSString *url = [command.arguments objectAtIndex:0];
-    NSDictionary *parameters = [command.arguments objectAtIndex:1];
-    NSDictionary *headers = [command.arguments objectAtIndex:2];
-    NSString *body = [command.arguments objectAtIndex:3];
+    NSString *url = [command.arguments objectAtIndex:1];
+    NSDictionary *parameters = [command.arguments objectAtIndex:2];
+    NSDictionary *headers = [command.arguments objectAtIndex:3];
+    NSString *body = [command.arguments objectAtIndex:4];
     
     NSMutableURLRequest *req = [[AFJSONRequestSerializer serializer] requestWithMethod:[method uppercaseString] URLString:url parameters:parameters error:nil];
     
-    [req setAllHTTPHeaderFields:headers];
+    if(headers != NULL) {
+        [req setAllHTTPHeaderFields:headers];
+    }
+    
     [req setHTTPBody:[body dataUsingEncoding:NSUTF8StringEncoding]];
     
     CordovaHttpPlugin* __weak weakSelf = self;
     
+    manager.responseSerializer = [TextResponseSerializer serializer];
     [[manager dataTaskWithRequest:req completionHandler:^(NSURLResponse * _Nonnull response, id  _Nullable responseObject, NSError * _Nullable error) {
         NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
         
@@ -293,10 +297,11 @@
             NSHTTPURLResponse * urlResponse = (NSHTTPURLResponse *)response;
             [dictionary setObject:[NSNumber numberWithInt:(int)[urlResponse statusCode]] forKey:@"status"];
             [dictionary setObject:urlResponse.allHeaderFields forKey:@"headers"];
+            
         }
         
         if (!error) {
-            // no 'body' for HEAD request, omitting 'data'
+            [dictionary setObject:responseObject forKey:@"data"];
             CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:dictionary];
             [weakSelf.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
         } else {
