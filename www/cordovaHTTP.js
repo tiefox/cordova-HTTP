@@ -97,7 +97,11 @@ var http = {
             success(entry);
         };
         return exec(win, failure, "CordovaHttpPlugin", "downloadFile", [url, params, headers, filePath]);
-    }
+    },
+    send: function(method, url, params, headers, body, success, failure) {
+        headers = mergeHeaders(this.headers, headers);
+        return exec(success, failure, "CordovaHttpPlugin", "send", [method, url, params, headers, body]);
+    },
 };
 
 module.exports = http;
